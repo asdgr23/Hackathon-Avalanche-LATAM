@@ -1,16 +1,20 @@
 import { Module } from '@nestjs/common';
 import { AmlModule } from './aml/aml.module';
-import { SmurfingService } from './features/smurfing/smurfing.service';
-import { StructuringService } from './features/structuring/structuring.service';
-import { VelocityService } from './features/velocity/velocity.service';
-import { ConcentrationService } from './features/concentration/concentration.service';
-import { GraphCyclesService } from './features/graph-cycles/graph-cycles.service';
-import { ScoringService } from './features/scoring/scoring.service';
-import { WatchlistsService } from './features/watchlists/watchlists.service';
+
+import { IngestionModule } from './ingestion/ingestion.module';
+import { SmurfingService } from './aml/features/smurfing/smurfing.service';
+import { StructuringService } from './aml/features/structuring/structuring.service';
+import { VelocityService } from './aml/features/velocity/velocity.service';
+import { ConcentrationService } from './aml/features/concentration/concentration.service';
+import { GraphCyclesService } from './aml/features/graph-cycles/graph-cycles.service';
+import { ScoringService } from './aml/features/scoring/scoring.service';
+import { WatchlistsService } from './aml/features/watchlists/watchlists.service';
+import { EntityResolutionService } from './entity-resolution/entity-resolution.service';
+
 
 @Module({
-  imports: [AmlModule],
+  imports: [AmlModule, IngestionModule],
   controllers: [],
-  providers: [SmurfingService, StructuringService, VelocityService, ConcentrationService, GraphCyclesService, ScoringService, WatchlistsService],
+  providers: [SmurfingService, StructuringService, VelocityService, ConcentrationService, GraphCyclesService, ScoringService, WatchlistsService, EntityResolutionService],
 })
 export class AppModule {}
