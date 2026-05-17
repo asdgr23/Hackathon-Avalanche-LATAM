@@ -9,7 +9,6 @@ import { ConcentrationService } from './aml/features/concentration/concentration
 import { GraphCyclesService } from './aml/features/graph-cycles/graph-cycles.service';
 import { ScoringService } from './aml/features/scoring/scoring.service';
 import { WatchlistsService } from './aml/features/watchlists/watchlists.service';
-import { EntityResolutionService } from './entity-resolution/entity-resolution.service';
 
 
 @Module({
