@@ -1,239 +1,106 @@
 import dotenv from "dotenv";
-
 import fs from "fs";
-
-import readline from "readline";
+import express from "express";
 
 import { normalizeData } from "./normalize";
-
 import { generateReport } from "./agent";
-
-import { filterEntityData }
-from "./filters/filterEntityData";
-
-import { buildAvalanchePayload }
-from "./blockchain/buildAvalanchePayload";
+import { filterEntityData } from "./filters/filterEntityData";
+import { buildAvalanchePayload } from "./blockchain/buildAvalanchePayload";
 
 dotenv.config();
 
-const rl = readline.createInterface({
+const app = express();
+app.use(express.json());
 
-  input: process.stdin,
+// ───────────────────────────────────
+// LOAD DATA ON START (IMPORTANTE)
+// ───────────────────────────────────
 
-  output: process.stdout,
-});
+const transactions = JSON.parse(
+  fs.readFileSync("./src/data/bank_transactions.json", "utf-8")
+);
 
-function askQuestion(
-  question: string
-): Promise<string> {
+const invoices = JSON.parse(
+  fs.readFileSync("./src/data/erp_invoices.json", "utf-8")
+);
 
-  return new Promise((resolve) => {
+const contracts = JSON.parse(
+  fs.readFileSync("./src/data/contracts_source.json", "utf-8")
+);
 
-    rl.question(
-      question,
-      resolve
-    );
-  });
-}
+const satRegistry = JSON.parse(
+  fs.readFileSync("./src/data/sat_registry.json", "utf-8")
+);
 
-async function main() {
+// ───────────────────────────────────
+// API ENDPOINT
+// ───────────────────────────────────
 
-  console.log("\n");
-  console.log(
-    "===================================="
-  );
+app.post("/analyze", async (req, res) => {
+  try {
+    const { entityQuery } = req.body;
 
-  console.log(
-    "FLOWTRACE AML INVESTIGATOR"
-  );
+    if (!entityQuery) {
+      return res.status(400).json({
+        error: "entityQuery is required",
+      });
+    }
 
-  console.log(
-    "===================================="
-  );
+    console.log("Analyzing:", entityQuery);
 
-  // ───────────────────────────────────
-  // USER INPUT
-  // ───────────────────────────────────
-
-  const entityQuery =
-    await askQuestion(
-
-      "Enter entity name, bank, tax ID, or keyword: "
-    );
-
-  // ───────────────────────────────────
-  // LOAD DATA
-  // ───────────────────────────────────
-
-  console.log("\nLoading datasets...");
-
-  const transactions = JSON.parse(
-
-    fs.readFileSync(
-      "./src/data/bank_transactions.json",
-      "utf-8"
-    )
-  );
-
-  const invoices = JSON.parse(
-
-    fs.readFileSync(
-      "./src/data/erp_invoices.json",
-      "utf-8"
-    )
-  );
-
-  const contracts = JSON.parse(
-
-    fs.readFileSync(
-      "./src/data/contracts_source.json",
-      "utf-8"
-    )
-  );
-
-  const satRegistry = JSON.parse(
-
-    fs.readFileSync(
-      "./src/data/sat_registry.json",
-      "utf-8"
-    )
-  );
-
-  // ───────────────────────────────────
-  // FILTER ENTITY DATA
-  // ───────────────────────────────────
-
-  console.log(
-    "\nSearching entity data..."
-  );
-
-  const entityData =
-    filterEntityData(
-
+    const entityData = filterEntityData(
       entityQuery,
-
       transactions,
       invoices,
       contracts,
       satRegistry
     );
 
-  console.log(
-    `Matched transactions:
-     ${entityData.transactions.length}`
-  );
-
-  console.log(
-    `Matched invoices:
-     ${entityData.invoices.length}`
-  );
-
-  console.log(
-    `Matched contracts:
-     ${entityData.contracts.length}`
-  );
-
-  console.log(
-    `Matched SAT records:
-     ${entityData.satRegistry.length}`
-  );
-
-  // ───────────────────────────────────
-  // AML ENGINE
-  // ───────────────────────────────────
-
-  console.log(
-    "\nRunning AML engine..."
-  );
-
-  const amlOutput =
-  normalizeData(
-
-    entityQuery,
-
-    entityData.transactions,
-
-    entityData.invoices,
-
-    entityData.contracts,
-
-    entityData.satRegistry
-  );
-
-  console.log(
-    "Detected flags:",
-    amlOutput.flags
-  );
-
-  // ───────────────────────────────────
-  // AI REPORT
-  // ───────────────────────────────────
-
-  console.log(
-    "\nGenerating AI report..."
-  );
-
-  const report =
-    await generateReport(
-      amlOutput
+    const amlOutput = normalizeData(
+      entityQuery,
+      entityData.transactions,
+      entityData.invoices,
+      entityData.contracts,
+      entityData.satRegistry
     );
 
-  // ───────────────────────────────────
-  // BLOCKCHAIN PAYLOAD
-  // ───────────────────────────────────
+    const report = await generateReport(amlOutput);
 
-  const avalanchePayload =
+    const avalanchePayload = buildAvalanchePayload(report);
 
-    buildAvalanchePayload(
-      report
-    );
-
-  // ───────────────────────────────────
-  // OUTPUTS
-  // ───────────────────────────────────
-
-  console.log("\n");
-
-  console.log(
-    "===================================="
-  );
-
-  console.log(
-    "AI AML REPORT"
-  );
-
-  console.log(
-    "===================================="
-  );
-
-  console.log(
-    report.report
-  );
-
-  console.log("\n");
-
-  console.log(
-    "===================================="
-  );
-
-  console.log(
-    "AVALANCHE PAYLOAD"
-  );
-
-  console.log(
-    "===================================="
-  );
-
-  console.log(
-
-    JSON.stringify(
+    return res.json({
+      report: report.report,
+      flags: amlOutput.flags,
       avalanchePayload,
-      null,
-      2
-    )
-  );
+      summary: {
+        transactions: entityData.transactions.length,
+        invoices: entityData.invoices.length,
+        contracts: entityData.contracts.length,
+        satRegistry: entityData.satRegistry.length,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      error: "Internal server error",
+    });
+  }
+});
 
-  rl.close();
-}
+// ───────────────────────────────────
+// HEALTH CHECK
+// ───────────────────────────────────
 
-main().catch(console.error);
+app.get("/", (_, res) => {
+  res.send("FlowTrace AI Agent running 🚀");
+});
+
+// ───────────────────────────────────
+// START SERVER (CRÍTICO PARA RENDER)
+// ───────────────────────────────────
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
+});
