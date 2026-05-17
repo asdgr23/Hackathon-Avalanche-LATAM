@@ -8,7 +8,7 @@ export enum EntityType {
 
 export class ResolveEntityDto {
   @IsString()
-  name?: string;
+  name!: string;
 
   @IsString()
   @IsOptional()
