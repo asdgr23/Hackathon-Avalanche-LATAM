@@ -1,29 +1,36 @@
-import { Injectable } from '@nestjs/common';
-import { DateUtil } from '../utils/date.util';
-import { FieldMapper } from '../utils/field-mapper.util';
+import { Injectable } from "@nestjs/common";
+import { CanonicalNormalizedEvent } from "../types/normalized";
+import { FieldMapper } from "../utils/field-mapper.util";
+import { DateUtil } from "../utils/date.util";
 
 @Injectable()
 export class BankTransformer {
-  transform(tx: any) {
+
+  transform(tx: any): CanonicalNormalizedEvent {
     return {
-      type: 'BANK_TX',
-      currency: tx.currency ?? 'MXN',
+      type: 'transfer',
+
       tx_id: tx.tx_id ?? null,
-      rfc_from: tx.sender_rfc ?? null,
-      rfc_to: tx.receiver_rfc ?? null,
+
+      currency: tx.currency ?? 'MXN',
+
       amount: Number(
-      FieldMapper.pick(tx, ['amount', 'monto', 'importe', 'total_amount'])
+        FieldMapper.pick(tx, ['amount', 'monto', 'importe', 'total_amount'])
       ),
+
       timestamp: DateUtil.parseDate(
-      FieldMapper.pick(tx, ['posted_at', 'fecha', 'date', 'fecha_operacion'])
+        FieldMapper.pick(tx, ['posted_at', 'fecha', 'date', 'fecha_operacion'])
       ),
+
       from: this.clean(
-      FieldMapper.pick(tx, ['sender_name', 'emisor.nombre'])
+        FieldMapper.pick(tx, ['sender_name', 'emisor.nombre'])
       ),
+
       to: this.clean(
-      FieldMapper.pick(tx, ['receiver_name', 'receptor.nombre'])
-    ),
-      source: 'BANK'
+        FieldMapper.pick(tx, ['receiver_name', 'receptor.nombre'])
+      ),
+
+      source: 'BANK',
     };
   }
 

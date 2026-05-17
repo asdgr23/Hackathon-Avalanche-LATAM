@@ -1,28 +1,37 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Param, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { IngestionService } from './ingestion.service';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('ingestion')
 export class IngestionController {
-    constructor(private readonly ingestionService: IngestionService) {}
+    constructor(private readonly ingestionService: IngestionService) {    }
 
-  @Post('bank')
-  ingestBank(@Body() payload: any[]) {
-    return this.ingestionService.ingest('BANK', payload);
+ @Post('upload/:source')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadFile(
+    @Param('source') source: string,
+    @UploadedFile() file: any,
+  ) {
+    const json = JSON.parse(file.buffer.toString());
+  const normalized = source.toUpperCase();
+
+    return this.ingestionService.ingest(
+      normalized as 'BANK' | 'ERP' | 'SAT' | 'CONTRACT',
+      json,
+    );
   }
 
-  @Post('erp')
-  ingestErp(@Body() payload: any[]) {
-    return this.ingestionService.ingest('ERP', payload);
-  }
+@Post(':source')
+ingest(
+  @Param('source') source: string,
+  @Body() payload: Record<string, any>[],
+) {
+  const normalized = source.toUpperCase();
 
-  @Post('sat')
-  ingestSat(@Body() payload: any[]) {
-    return this.ingestionService.ingest('SAT', payload);
-  }
-
-  @Post('contracts')
-  ingestContracts(@Body() payload: any[]) {
-    return this.ingestionService.ingest('CONTRACT', payload);
-  }
+  return this.ingestionService.ingest(
+    normalized as 'BANK' | 'ERP' | 'SAT' | 'CONTRACT',
+    payload,
+  );
+}
 }
 

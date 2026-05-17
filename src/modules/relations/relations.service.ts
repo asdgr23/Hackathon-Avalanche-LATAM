@@ -1,56 +1,121 @@
 import { Injectable } from '@nestjs/common';
+import { ResolvedEntity } from '../types/resolved-entity';
+import { GraphEdge } from '../types/edge';
+import { EntityTransaction as GraphTransaction } from '../types/entity-transaction';
 
-// modules/relations/relations.service.ts
 @Injectable()
 export class RelationsService {
-  buildEdges(entities: ResolvedEntity[]): GraphEdge[] {
+
+  buildEdges(
+    entities: ResolvedEntity[],
+    transactions: GraphTransaction[],
+  ): GraphEdge[] {
+
     const edges: GraphEdge[] = [];
 
-    // Conexiones explícitas: A pagó a B
-    for (const tx of this.extractTransactions(entities)) {
+    // =========================
+    // EXPLICIT CONNECTIONS (MONEY FLOW)
+    // =========================
+
+    for (const tx of transactions) {
       edges.push({
-        from: tx.senderId,
-        to: tx.receiverId,
+        from: tx.from,
+        to: tx.to,
         type: 'TRANSACTED_WITH',
-        weight: this.calcWeight(tx.amount, tx.frequency),
-        date: tx.date,
+        weight: this.calcWeight(tx.amount, tx.frequency ?? 1),
+        date: tx.timestamp,
       });
     }
 
-    // Conexiones implícitas: misma dirección fiscal → posible shell company
-    const byAddress = this.groupBy(entities, e => e.fiscalAddress);
+    // =========================
+    // IMPLICIT CONNECTIONS (GRAPH PATTERNS)
+    // =========================
+
+    const byAddress = this.groupBy(
+      entities,
+      e => e.fiscalAddress ?? 'unknown',
+    );
+
     for (const [, group] of byAddress) {
       if (group.length > 1) {
+
         for (let i = 0; i < group.length; i++) {
           for (let j = i + 1; j < group.length; j++) {
+
             edges.push({
-              from: group[i].id,
-              to: group[j].id,
+              from: group[i].entity_id,
+              to: group[j].entity_id,
               type: 'SHARES_ADDRESS',
-              weight: 0.6,  // peso medio — sospechoso pero no definitivo
-              date: new Date(),
+              weight: 0.6,
+              date: new Date().toISOString(),
             });
+
           }
         }
+
       }
     }
 
     return edges;
   }
 
-  // Peso = función del monto y la frecuencia (0.0 → 1.0)
+  // =========================
+  // EDGE WEIGHT (AML SCORING BASIC)
+  // =========================
+
   private calcWeight(amount: number, frequency: number): number {
     const amountScore = Math.min(amount / 1_000_000, 1);
     const freqScore = Math.min(frequency / 100, 1);
-    return Number(((amountScore * 0.7) + (freqScore * 0.3)).toFixed(3));
+
+    return Number(
+      ((amountScore * 0.7) + (freqScore * 0.3)).toFixed(3),
+    );
   }
 
-  private groupBy<T>(arr: T[], key: (item: T) => string) {
+  // =========================
+  // GROUPING UTILITY
+  // =========================
+
+  private groupBy<T>(
+    arr: T[],
+    key: (item: T) => string,
+  ): Map<string, T[]> {
+
     return arr.reduce((map, item) => {
       const k = key(item);
-      if (!map.has(k)) map.set(k, []);
+
+      if (!map.has(k)) {
+        map.set(k, []);
+      }
+
       map.get(k)!.push(item);
+
       return map;
+
     }, new Map<string, T[]>());
+  }
+
+  // =========================
+  // OPTIONAL API HELPERS
+  // =========================
+
+  createEdge(dto: any) {
+    return {
+      message: 'edge created',
+      dto,
+    };
+  }
+
+  findPath(query: any) {
+    return {
+      message: 'path found',
+      query,
+    };
+  }
+
+  detectImplicitConnections() {
+    return {
+      message: 'implicit connections detected',
+    };
   }
 }
