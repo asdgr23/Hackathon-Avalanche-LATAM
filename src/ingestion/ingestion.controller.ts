@@ -1,10 +1,16 @@
-import { Body, Controller, Param, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Param, Post, UploadedFile, UploadedFiles, UseInterceptors } from '@nestjs/common';
 import { IngestionService } from './ingestion.service';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
+import { GraphService } from 'src/modules/graph/graph.service';
 
 @Controller('ingestion')
 export class IngestionController {
-    constructor(private readonly ingestionService: IngestionService) {    }
+    constructor(private readonly ingestionService: IngestionService, private readonly graphService: GraphService) {    }
+
+@Post('bulk')
+ingestBulk(@Body() dto: any) {
+  return this.ingestionService.ingestFromDto(dto);
+}
 
  @Post('upload/:source')
   @UseInterceptors(FileInterceptor('file'))
@@ -13,13 +19,21 @@ export class IngestionController {
     @UploadedFile() file: any,
   ) {
     const json = JSON.parse(file.buffer.toString());
-  const normalized = source.toUpperCase();
-
+const normalized = source.toUpperCase() as 'BANK' | 'ERP' | 'SAT' | 'CONTRACT';
     return this.ingestionService.ingest(
       normalized as 'BANK' | 'ERP' | 'SAT' | 'CONTRACT',
       json,
     );
   }
+
+@Post('pipeline-file')
+@UseInterceptors(FileInterceptor('file'))
+runPipelineFile(@UploadedFile() file: any) {
+
+  const events = JSON.parse(file.buffer.toString());
+
+  return this.graphService.build(events);
+}
 
 @Post(':source')
 ingest(

@@ -6,6 +6,7 @@ import { ContractTransformer } from "./transformers/contract.transformer";
 import { BuildGraphDto } from "src/modules/graph/dto/buildgraph";
 import { EntityResolutionService } from '../entity-resolution/entity-resolution.service';
 
+
   @Injectable()
 export class IngestionService {
   constructor(
@@ -39,7 +40,6 @@ export class IngestionService {
       const enriched = this.enrichWithEntities(source, normalized, record);
 
       return {
-        source,
         normalized,
         from_entity: enriched.from_entity,
         to_entity: enriched.to_entity,

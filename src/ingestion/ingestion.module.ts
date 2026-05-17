@@ -6,10 +6,12 @@ import { ErpTransformer } from './transformers/erp.transformer';
 import { SatTransformer } from './transformers/sat.transformer';
 import { ContractTransformer } from './transformers/contract.transformer';
 import { EntityResolutionModule } from 'src/entity-resolution/entity-resolution.module';
+import { GraphModule } from 'src/modules/graph/graph.module';
 
 @Module({
   imports: [
     EntityResolutionModule, 
+    GraphModule
   ],
  controllers: [IngestionController],
   providers: [

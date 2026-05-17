@@ -10,12 +10,13 @@ import { Neo4jModule } from './neo4j/neo4j.module';
 import { Module } from '@nestjs/common';
 import { AmlModule } from './aml/aml.module';
 import { ConfigModule } from '@nestjs/config';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [ ConfigModule.forRoot({
   isGlobal: true,
   envFilePath: '.env',
-}), AmlModule, IngestionModule, Neo4jModule],
+}), AmlModule, IngestionModule, Neo4jModule, AnalyticsModule],
   controllers: [],
   providers: [SmurfingService, StructuringService, VelocityService, ConcentrationService, GraphCyclesService, ScoringService, WatchlistsService],
 })
