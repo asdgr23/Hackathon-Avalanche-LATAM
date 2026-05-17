@@ -1,9 +1,285 @@
 import { Injectable } from '@nestjs/common';
 import { Neo4jService } from '../neo4j/neo4j.service';
+import { ethers } from 'ethers';
+const ABI=[
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "string",
+				"name": "entityId",
+				"type": "string"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "riskScore",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "reason",
+				"type": "string"
+			}
+		],
+		"name": "RiskFlagged",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "string",
+				"name": "eventId",
+				"type": "string"
+			},
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "fromEntity",
+				"type": "string"
+			},
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "toEntity",
+				"type": "string"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "TransactionRegistered",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "entityId",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "riskScore",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "reason",
+				"type": "string"
+			}
+		],
+		"name": "flagRisk",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "entityId",
+				"type": "string"
+			}
+		],
+		"name": "getRiskHistory",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "string",
+						"name": "entityId",
+						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "riskScore",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "computedAt",
+						"type": "uint256"
+					},
+					{
+						"internalType": "string",
+						"name": "reason",
+						"type": "string"
+					}
+				],
+				"internalType": "struct FlowTrace.RiskLog[]",
+				"name": "",
+				"type": "tuple[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "eventId",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "fromEntity",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "toEntity",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "txType",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "timestamp",
+				"type": "uint256"
+			}
+		],
+		"name": "logTransaction",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "riskHistory",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "entityId",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "riskScore",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "computedAt",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "reason",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"name": "transactions",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "eventId",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "fromEntity",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "toEntity",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "txType",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "timestamp",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+];
 
+const RISK_THRESHOLD = 1_000_000;
 @Injectable()
 export class AnalyticsService {
-  constructor(private readonly neo4j: Neo4jService) {}
+      private contract: ethers.Contract;
+
+  constructor(
+    private readonly neo4j: Neo4jService,
+    
+) { const provider = new ethers.JsonRpcProvider(process.env.AVALANCHE_RPC_URL);
+    const wallet = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
+    this.contract = new ethers.Contract(
+      process.env.CONTRACT_ADDRESS!,
+      ABI,
+      wallet
+    );
+  }
+
+  private async flagOnChain(entityId: string, riskScore: number, reason: string) {
+    try {
+      const tx = await this.contract.flagRisk(
+        entityId,
+        BigInt(Math.round(riskScore)),
+        reason
+      );
+      await tx.wait();
+      return {
+        txHash: tx.hash,
+        explorerUrl: `https://testnet.snowtrace.io/tx/${tx.hash}`
+      };
+    } catch (e: any) {
+      console.error('Blockchain flag failed:', e.message);
+      return null; // no rompe el endpoint si falla la blockchain
+    }
+  }
+
 
   async topEntities() {
     const session = this.neo4j.getReadSession();
@@ -212,6 +488,5 @@ async whales() {
       ? value.toNumber()
       : Number(value);
   }
-
 
 }
