@@ -15,6 +15,6 @@ import { EntityResolutionService } from './entity-resolution/entity-resolution.s
 @Module({
   imports: [AmlModule, IngestionModule],
   controllers: [],
-  providers: [SmurfingService, StructuringService, VelocityService, ConcentrationService, GraphCyclesService, ScoringService, WatchlistsService, EntityResolutionService],
+  providers: [SmurfingService, StructuringService, VelocityService, ConcentrationService, GraphCyclesService, ScoringService, WatchlistsService],
 })
 export class AppModule {}

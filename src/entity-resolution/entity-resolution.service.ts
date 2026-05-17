@@ -12,12 +12,18 @@ export class EntityResolutionService {
     name?: string | null;
     rfc?: string | null;
     account?: string | null;
-  }) {
-    // 1. RFC MATCH (más fuerte)
-    if (input.rfc) {
-      const byRfc = this.findByRfc(input.rfc);
-      if (byRfc) return byRfc;
+source: 'SAT' | 'ERP' | 'BANK' | 'CONTRACT';
+}) {
+
+  // 1. RFC MATCH
+  if (input.rfc) {
+    const byRfc = this.findByRfc(input.rfc);
+
+    if (byRfc) {
+      byRfc.sources = [...new Set([...(byRfc.sources || []), input.source])];
+      return byRfc;
     }
+  }
 
     // 2. ACCOUNT MATCH
     if (input.account) {
@@ -26,10 +32,10 @@ export class EntityResolutionService {
     }
 
     // 3. NAME MATCH (fuzzy simple MVP)
-    const normalized = NameNormalizer.normalize(input.name);
+   const normalized = NameNormalizer.normalize(input.name);
 
-    const byName = this.findByName(normalized);
-    if (byName) return byName;
+  const byName = this.findByName(normalized);
+  if (byName) return byName;
 
     // 4. CREATE NEW ENTITY
   const entity: Entity = {
@@ -44,6 +50,8 @@ export class EntityResolutionService {
       accounts: input.account ? [input.account] : [],
 
       aliases: [],
+    sources: [input.source],
+
 
       created_at: new Date().toISOString(),
     };
@@ -52,6 +60,8 @@ export class EntityResolutionService {
 
     return entity;
   }
+
+  
 
   private findByRfc(rfc: string) {
     return this.store.getAll().find(e =>

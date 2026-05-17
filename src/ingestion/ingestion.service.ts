@@ -16,12 +16,10 @@ export class IngestionService {
 
   ) {}
 
-  ingest(source: string, payload: any[]) {
+  ingest(source: 'SAT' | 'ERP' | 'BANK' | 'CONTRACT', payload: any[]) {
     return payload.map((record) => {
       const normalized = this.transform(source, record);
       const enriched = this.enrichWithEntities(source, normalized, record);
-
-       
 
       return {
         source,
@@ -54,15 +52,18 @@ export class IngestionService {
     }
   }
 
-  private enrichWithEntities(source: string, normalized: any, raw: any) {
+  private enrichWithEntities(source: 'SAT' | 'ERP' | 'BANK' | 'CONTRACT', normalized: any, raw: any) {
   const fromEntity = this.entityResolution.resolve({
     name: normalized.from,
     rfc: normalized.rfc_from,
     account: raw.sender_account,
+      source,
+
   });
 
   const toEntity = this.entityResolution.resolve({
-    name: normalized.to,
+    source,
+    name: normalized.from ?? raw.sender_name ?? null,
     rfc: normalized.rfc_to,
     account: raw.receiver_account,
   });

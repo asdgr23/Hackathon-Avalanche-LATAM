@@ -13,4 +13,6 @@ export interface Entity {
   aliases: string[];
 
   created_at: string;
+
+  sources: string[];
 }
