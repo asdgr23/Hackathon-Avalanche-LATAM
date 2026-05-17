@@ -6,17 +6,13 @@ import { normalizeData } from "./normalize";
 import { generateReport } from "./agent";
 import { filterEntityData } from "./filters/filterEntityData";
 import { buildAvalanchePayload } from "./blockchain/buildAvalanchePayload";
-import { ResponseSchema } from "@google/generative-ai";
 
 dotenv.config();
 
 const app = express();
 app.use(express.json());
 
-// ───────────────────────────────────
 // LOAD DATA ON START (IMPORTANTE)
-// ───────────────────────────────────
-
 const transactions = JSON.parse(
   fs.readFileSync("./src/data/bank_transactions.json", "utf-8")
 );
@@ -33,21 +29,19 @@ const satRegistry = JSON.parse(
   fs.readFileSync("./src/data/sat_registry.json", "utf-8")
 );
 
-// ───────────────────────────────────
-// API ENDPOINT
-// ───────────────────────────────────
+// 🧠 HEALTH CHECK
+app.get("/", (_req: Request, res: Response) => {
+  res.send("FlowTrace AI Agent running 🚀");
+});
 
+// 🔍 ANALYZE ENDPOINT
 app.post("/analyze", async (req: Request, res: Response) => {
   try {
     const { entityQuery } = req.body;
 
     if (!entityQuery) {
-      return res.status(400).json({
-        error: "entityQuery is required",
-      });
+      return res.status(400).json({ error: "entityQuery required" });
     }
-
-    console.log("Analyzing:", entityQuery);
 
     const entityData = filterEntityData(
       entityQuery,
@@ -77,29 +71,16 @@ app.post("/analyze", async (req: Request, res: Response) => {
         transactions: entityData.transactions.length,
         invoices: entityData.invoices.length,
         contracts: entityData.contracts.length,
-        satRegistry: entityData.satRegistry.length,
-      },
+        satRegistry: entityData.satRegistry.length
+      }
     });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({
-      error: "Internal server error",
-    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Internal error" });
   }
 });
 
-// ───────────────────────────────────
-// HEALTH CHECK
-// ───────────────────────────────────
-
-app.get("/", (_req: Request, res: Response) => {
-  res.send("FlowTrace AI Agent running 🚀");
-});
-
-// ───────────────────────────────────
-// START SERVER (CRÍTICO PARA RENDER)
-// ───────────────────────────────────
-
+// IMPORTANT: RENDER PORT BINDING
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, "0.0.0.0", () => {
