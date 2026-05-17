@@ -16,11 +16,15 @@ export class ContractTransformer {
     const supplierEntity = this.entityResolution.resolve({
       name: supplierName,
       rfc: c.proveedor?.rfc,
+        source: 'CONTRACT'
+
     });
 
     const clientEntity = this.entityResolution.resolve({
       name: clientName,
       rfc: c.cliente?.rfc,
+              source: 'CONTRACT'
+
     });
     return {
       type: 'CONTRACT',
@@ -55,6 +59,8 @@ export class ContractTransformer {
         missing_client_rfc: !c.cliente?.rfc,
         weak_entity_name: this.isWeakName(c.proveedor?.nombre),
       }
+
+      
     };
   }
 

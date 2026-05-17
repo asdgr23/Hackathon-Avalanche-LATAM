@@ -22,7 +22,8 @@ export class BankTransformer {
       ),
       to: this.clean(
       FieldMapper.pick(tx, ['receiver_name', 'receptor.nombre'])
-    )
+    ),
+      source: 'BANK'
     };
   }
 

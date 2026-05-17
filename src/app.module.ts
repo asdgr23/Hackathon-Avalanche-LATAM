@@ -36,7 +36,7 @@ import { ContractsModule } from './modules/contracts/contracts.module';
   imports: [AmlModule, IngestionModule],
 >>>>>>> daab52c1497042c85336de85bf91a7af9e86c786
   controllers: [],
-  providers: [SmurfingService, StructuringService, VelocityService, ConcentrationService, GraphCyclesService, ScoringService, WatchlistsService, EntityResolutionService],
+  providers: [SmurfingService, StructuringService, VelocityService, ConcentrationService, GraphCyclesService, ScoringService, WatchlistsService],
 })
 export class AppModule {}
 
