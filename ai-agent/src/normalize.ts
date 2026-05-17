@@ -12,6 +12,10 @@ from "./detections/detectLayering";
 import { detectInvoiceFraud }
 from "./detections/detectInvoiceFraud";
 
+import { detectSATMismatch } 
+from "./detections/detectSATMismatch";
+
+
 import {
   AMLOutput,
   AMLFlag
@@ -22,9 +26,17 @@ import {
 // ─────────────────────────────────────
 
 export function normalizeData(
+
+  entityQuery: string,
+
   transactions: any[],
+
   invoices: any[] = [],
-  contracts: any[] = []
+
+  contracts: any[] = [],
+
+  satRegistry: any[] = []
+
 ): AMLOutput {
 
   const flags: AMLFlag[] = [];
@@ -59,6 +71,15 @@ export function normalizeData(
   ) {
     flags.push("concentration_risk");
   }
+  
+  if (
+    detectSATMismatch(
+      transactions,
+      satRegistry
+      )
+ ) {
+    flags.push("tax_mismatch");
+  }
 
   // ─────────────────────────────────────
   // RISK WEIGHTS
@@ -76,6 +97,7 @@ export function normalizeData(
     watchlist_match: 0.50,
     layering: 0.35,
     rapid_movement: 0.28,
+    tax_mismatch: 0.40,
   };
 
   // ─────────────────────────────────────
@@ -150,10 +172,9 @@ export function normalizeData(
 
   return {
 
-    entity_id: "ENTITY-001",
+    entity_id: entityQuery,
 
-    entity_name:
-      "Detected Financial Entity",
+    entity_name: entityQuery,
 
     risk_score: riskScore,
 

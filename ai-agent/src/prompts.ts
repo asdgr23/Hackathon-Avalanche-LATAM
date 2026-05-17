@@ -61,7 +61,8 @@ BEHAVIOR RULES:
    - watchlist_match: OFAC / PEP / internal list hit
    - layering: multiple transaction layers obscuring the audit trail
    - rapid_movement: funds moved between accounts within short windows
-
+   - tax_mismatch: transaction activity materially exceeds declared tax revenue or regulatory filings
+   
 5. Write in professional English. Sentences under 25 words where possible.
    No bullet points inside paragraphs — use prose within sections.
 

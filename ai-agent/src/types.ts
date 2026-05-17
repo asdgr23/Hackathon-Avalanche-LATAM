@@ -6,7 +6,8 @@ export type AMLFlag =
   | "concentration_risk"
   | "watchlist_match"
   | "layering"
-  | "rapid_movement";
+  | "rapid_movement"
+  | "tax_mismatch";
 
 export interface GraphSummary {
   node_count: number;

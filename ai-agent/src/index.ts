@@ -2,25 +2,70 @@ import dotenv from "dotenv";
 
 import fs from "fs";
 
+import readline from "readline";
+
 import { normalizeData } from "./normalize";
 
 import { generateReport } from "./agent";
 
+import { filterEntityData }
+from "./filters/filterEntityData";
+
+import { buildAvalanchePayload }
+from "./blockchain/buildAvalanchePayload";
+
 dotenv.config();
 
-const start = Date.now();
+const rl = readline.createInterface({
 
-// ─────────────────────────────────────────────
-// MAIN EXECUTION
-// ─────────────────────────────────────────────
+  input: process.stdin,
+
+  output: process.stdout,
+});
+
+function askQuestion(
+  question: string
+): Promise<string> {
+
+  return new Promise((resolve) => {
+
+    rl.question(
+      question,
+      resolve
+    );
+  });
+}
 
 async function main() {
 
-  console.log("Loading transaction data...");
+  console.log("\n");
+  console.log(
+    "===================================="
+  );
 
-  // ─────────────────────────────────────────
-  // LOAD JSON FILE
-  // ─────────────────────────────────────────
+  console.log(
+    "FLOWTRACE AML INVESTIGATOR"
+  );
+
+  console.log(
+    "===================================="
+  );
+
+  // ───────────────────────────────────
+  // USER INPUT
+  // ───────────────────────────────────
+
+  const entityQuery =
+    await askQuestion(
+
+      "Enter entity name, bank, tax ID, or keyword: "
+    );
+
+  // ───────────────────────────────────
+  // LOAD DATA
+  // ───────────────────────────────────
+
+  console.log("\nLoading datasets...");
 
   const transactions = JSON.parse(
 
@@ -31,44 +76,88 @@ async function main() {
   );
 
   const invoices = JSON.parse(
-  fs.readFileSync(
-    "./src/data/erp_invoices.json",
-    "utf-8"
-  )
-);
 
-const contracts = JSON.parse(
-  fs.readFileSync(
-    "./src/data/contracts_source.json",
-    "utf-8"
-  )
-);
-
-  console.log(
-    `Loaded ${transactions.length} transactions`
+    fs.readFileSync(
+      "./src/data/erp_invoices.json",
+      "utf-8"
+    )
   );
 
+  const contracts = JSON.parse(
+
+    fs.readFileSync(
+      "./src/data/contracts_source.json",
+      "utf-8"
+    )
+  );
+
+  const satRegistry = JSON.parse(
+
+    fs.readFileSync(
+      "./src/data/sat_registry.json",
+      "utf-8"
+    )
+  );
+
+  // ───────────────────────────────────
+  // FILTER ENTITY DATA
+  // ───────────────────────────────────
+
   console.log(
-  `Loaded ${invoices.length} invoices`
-);
+    "\nSearching entity data..."
+  );
 
-console.log(
-  `Loaded ${contracts.length} contracts`
-);
+  const entityData =
+    filterEntityData(
 
-  // ─────────────────────────────────────────
-  // NORMALIZE DATA
-  // ─────────────────────────────────────────
+      entityQuery,
 
-  const amlOutput =
-    normalizeData(
       transactions,
       invoices,
-      contracts
+      contracts,
+      satRegistry
     );
 
   console.log(
-    "AML normalization complete"
+    `Matched transactions:
+     ${entityData.transactions.length}`
+  );
+
+  console.log(
+    `Matched invoices:
+     ${entityData.invoices.length}`
+  );
+
+  console.log(
+    `Matched contracts:
+     ${entityData.contracts.length}`
+  );
+
+  console.log(
+    `Matched SAT records:
+     ${entityData.satRegistry.length}`
+  );
+
+  // ───────────────────────────────────
+  // AML ENGINE
+  // ───────────────────────────────────
+
+  console.log(
+    "\nRunning AML engine..."
+  );
+
+  const amlOutput =
+  normalizeData(
+
+    entityQuery,
+
+    entityData.transactions,
+
+    entityData.invoices,
+
+    entityData.contracts,
+
+    entityData.satRegistry
   );
 
   console.log(
@@ -76,48 +165,75 @@ console.log(
     amlOutput.flags
   );
 
-  // ─────────────────────────────────────────
-  // GENERATE AI REPORT
-  // ─────────────────────────────────────────
+  // ───────────────────────────────────
+  // AI REPORT
+  // ───────────────────────────────────
+
+  console.log(
+    "\nGenerating AI report..."
+  );
 
   const report =
-    await generateReport(amlOutput);
+    await generateReport(
+      amlOutput
+    );
 
-  // ─────────────────────────────────────────
-  // OUTPUT
-  // ─────────────────────────────────────────
+  // ───────────────────────────────────
+  // BLOCKCHAIN PAYLOAD
+  // ───────────────────────────────────
+
+  const avalanchePayload =
+
+    buildAvalanchePayload(
+      report
+    );
+
+  // ───────────────────────────────────
+  // OUTPUTS
+  // ───────────────────────────────────
 
   console.log("\n");
-  console.log("=".repeat(70));
 
-  console.log("AML REPORT");
+  console.log(
+    "===================================="
+  );
 
-  console.log("=".repeat(70));
+  console.log(
+    "AI AML REPORT"
+  );
 
-  console.log(report.report);
+  console.log(
+    "===================================="
+  );
+
+  console.log(
+    report.report
+  );
 
   console.log("\n");
 
   console.log(
-    `Risk Level: ${report.risk_level}`
+    "===================================="
   );
 
   console.log(
-    `Risk Score: ${report.risk_score}`
+    "AVALANCHE PAYLOAD"
   );
-
-  const end = Date.now();
 
   console.log(
-    `Pipeline executed in ${end - start}ms`
+    "===================================="
   );
+
+  console.log(
+
+    JSON.stringify(
+      avalanchePayload,
+      null,
+      2
+    )
+  );
+
+  rl.close();
 }
 
-
-main().catch((error) => {
-
-  console.error(
-    "Fatal AML pipeline error:",
-    error
-  );
-});
+main().catch(console.error);
