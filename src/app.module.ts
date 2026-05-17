@@ -9,9 +9,13 @@ import { WatchlistsService } from './aml/features/watchlists/watchlists.service'
 import { Neo4jModule } from './neo4j/neo4j.module';
 import { Module } from '@nestjs/common';
 import { AmlModule } from './aml/aml.module';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [AmlModule, IngestionModule, Neo4jModule],
+  imports: [ ConfigModule.forRoot({
+  isGlobal: true,
+  envFilePath: '.env',
+}), AmlModule, IngestionModule, Neo4jModule],
   controllers: [],
   providers: [SmurfingService, StructuringService, VelocityService, ConcentrationService, GraphCyclesService, ScoringService, WatchlistsService],
 })

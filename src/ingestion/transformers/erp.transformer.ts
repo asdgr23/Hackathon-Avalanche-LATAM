@@ -1,43 +1,32 @@
 import { Injectable } from '@nestjs/common';
 import { DateUtil } from '../utils/date.util';
+import { CanonicalNormalizedEvent } from '../types/normalized';
 
 @Injectable()
 export class ErpTransformer {
 
-  transform(inv: any) {
+  transform(inv: any): CanonicalNormalizedEvent {
     const amount = this.resolveAmount(inv);
 
     return {
-      type: 'ERP_INVOICE',
+      type: 'invoice',
 
-      invoice_id: inv.folio ?? null,
-      series: inv.serie ?? null,
+      tx_id: inv.folio ?? null,
 
-      issuer: this.clean(inv.emisor?.nombre),
-      issuer_rfc: inv.emisor?.rfc ?? null,
-
-      receiver: this.clean(inv.receptor?.nombre),
-      receiver_rfc: inv.receptor?.rfc ?? null,
-
-      amount: amount,
       currency: inv.moneda ?? 'MXN',
 
-      issue_date: DateUtil.parseDate(inv.fecha_emision),
-      due_date: DateUtil.parseDate(inv.fecha_vencimiento),
-      payment_date: DateUtil.parseDate(inv.fecha_pago),
+      amount,
 
-      status: inv.estado ?? 'unknown',
+      timestamp: DateUtil.parseDate(inv.fecha_emision),
 
-      category: inv.categoria ?? null,
-      concept: inv.concepto ?? null,
+      from: this.clean(inv.emisor?.nombre),
 
-      contract_ref: inv.contrato_ref ?? null,
-      uuid_sat: inv.uuid_sat ?? null,
+      to: this.clean(inv.receptor?.nombre),
+
+      source: 'ERP',
     };
   }
 
-  // =========================
-  // AMOUNT RESOLUTION (CRÍTICO)
   // =========================
 
   private resolveAmount(inv: any): number | null {
@@ -52,10 +41,6 @@ export class ErpTransformer {
     return raw ? Number(raw) : null;
   }
 
-  // =========================
-  // CLEAN ENTITY
-  // =========================
-
   private clean(name?: string) {
     if (!name) return null;
 
@@ -65,5 +50,4 @@ export class ErpTransformer {
       .replace(/[^\w\s]/g, '')
       .trim();
   }
-
 }

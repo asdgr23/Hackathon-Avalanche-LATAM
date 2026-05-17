@@ -1,71 +1,36 @@
 import { Injectable } from '@nestjs/common';
 import { DateUtil } from '../utils/date.util';
 import { EntityResolutionService } from 'src/entity-resolution/entity-resolution.service';
+import { CanonicalNormalizedEvent } from '../types/normalized';
 
 @Injectable()
 export class ContractTransformer {
+
   constructor(private entityResolution: EntityResolutionService) {}
 
-  transform(c: any) {
-   const supplierRawName = c.proveedor?.nombre;
-    const clientRawName = c.cliente?.nombre;
+  transform(c: any): CanonicalNormalizedEvent {
 
-    const supplierName = this.clean(supplierRawName);
-    const clientName = this.clean(clientRawName);
+    const supplier = this.clean(c.proveedor?.nombre);
+    const client = this.clean(c.cliente?.nombre);
 
-    const supplierEntity = this.entityResolution.resolve({
-      name: supplierName,
-      rfc: c.proveedor?.rfc,
-        source: 'CONTRACT'
-
-    });
-
-    const clientEntity = this.entityResolution.resolve({
-      name: clientName,
-      rfc: c.cliente?.rfc,
-              source: 'CONTRACT'
-
-    });
     return {
-      type: 'CONTRACT',
+      type: 'contract',
 
-      contract_id: c.contract_id ?? null,
-      contract_type: c.tipo ?? null,
-      description: c.descripcion ?? null,
-
-      supplier: this.clean(c.proveedor?.nombre),
-      supplier_rfc: c.proveedor?.rfc ?? null,
-      supplier_entity: supplierEntity?.entity_id ?? null,
-
-      client: this.clean(c.cliente?.nombre),
-      client_rfc: c.cliente?.rfc ?? null,
-      client_entity: clientEntity?.entity_id ?? null,
-      start_date: DateUtil.parseDate(c.vigencia?.inicio),
-      end_date: DateUtil.parseDate(c.vigencia?.fin),
+      tx_id: c.contract_id ?? null,
 
       currency: c.moneda ?? 'MXN',
-      payment_terms: c.condiciones_pago ?? null,
 
-      auto_renewal: c.auto_renovacion ?? false,
-      status: c.estado ?? 'unknown',
+      amount: this.resolveValue(c), // monthly value o contrato
 
-      // normalized financial value (important for risk later)
-      monthly_value: this.resolveValue(c),
+      timestamp: DateUtil.parseDate(c.vigencia?.inicio),
 
-      raw_range_value: c.rango_valor ?? null,
+      from: supplier,
+      to: client,
 
-      confidence_flags: {
-        missing_supplier_rfc: !c.proveedor?.rfc,
-        missing_client_rfc: !c.cliente?.rfc,
-        weak_entity_name: this.isWeakName(c.proveedor?.nombre),
-      }
-
-      
+      source: 'CONTRACT',
     };
   }
 
-  // =========================
-  // VALUE NORMALIZATION
   // =========================
 
   private resolveValue(c: any): number | null {
@@ -87,10 +52,6 @@ export class ContractTransformer {
     return numbers[0] ?? null;
   }
 
-  // =========================
-  // ENTITY CLEANING (CRITICAL)
-  // =========================
-
   private clean(name?: string) {
     if (!name) return null;
 
@@ -99,15 +60,5 @@ export class ContractTransformer {
       .replace(/\b(s\.a\.|s\.a\.p\.i\.|sa de cv|s de rl de cv|de cv)\b/g, '')
       .replace(/\s+/g, ' ')
       .trim();
-  }
-
-
-  // =========================
-  // BASIC QUALITY SIGNALS (VERY USEFUL FOR AML LATER)
-  // =========================
-
-  private isWeakName(name?: string): boolean {
-    if (!name) return true;
-    return name.length < 5;
   }
 }

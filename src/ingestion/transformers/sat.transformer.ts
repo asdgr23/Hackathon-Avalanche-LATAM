@@ -1,28 +1,20 @@
 import { Injectable } from '@nestjs/common';
-import { DateUtil } from '../utils/date.util';
+import { GraphEntity } from '../types/graphentity';
 
 @Injectable()
 export class SatTransformer {
 
-  transform(r: any) {
+  transform(r: any): GraphEntity {
     return {
-      type: 'SAT_ENTITY',
+      type: 'ENTITY',
+
+      entity_id: r.rfc ?? this.createNameSignature(r.razon_social, r.nombre_comercial),
 
       rfc: r.rfc ?? null,
 
-      // canonical identity (VERY IMPORTANT FOR GRAPH MERGING)
       legal_name: this.clean(r.razon_social),
+
       trade_name: this.clean(r.nombre_comercial),
-
-      fiscal_regime: r.regimen_fiscal ?? null,
-
-      economic_activity: r.actividad_economica ?? null,
-      sector: r.sector ?? null,
-
-      status: r.estatus ?? 'unknown',
-
-      registration_date:DateUtil.parseDate(r.fecha_alta),
-      last_update: DateUtil.parseDate(r.ultima_actualizacion),
 
       location: {
         street: r.domicilio_fiscal?.calle ?? null,
@@ -32,21 +24,15 @@ export class SatTransformer {
         country: r.domicilio_fiscal?.pais ?? 'MX',
       },
 
-      //  ENTITY MATCHING
-      identity_keys: {
-        rfc_normalized: r.rfc?.toUpperCase() ?? null,
-        name_signature: this.createNameSignature(r.razon_social, r.nombre_comercial),
-      },
+      identity_signature: this.createNameSignature(
+        r.razon_social,
+        r.nombre_comercial
+      ),
 
-      confidence_flags: {
-        missing_rfc: !r.rfc,
-        weak_trade_name: !r.nombre_comercial,
-      }
+      source: 'SAT',
     };
   }
 
-  // =========================
-  // NAME CLEANING (GRAPH)
   // =========================
 
   private clean(name?: string) {
@@ -58,10 +44,6 @@ export class SatTransformer {
       .replace(/\s+/g, ' ')
       .trim();
   }
-
-  // =========================
-  // NAME SIGNATURE (ENTITY RESOLUTION CORE)
-  // =========================
 
   private createNameSignature(legal?: string, trade?: string) {
     const base = `${legal ?? ''} ${trade ?? ''}`

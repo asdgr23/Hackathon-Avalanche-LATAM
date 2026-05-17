@@ -9,7 +9,7 @@ import { EntityResolutionModule } from 'src/entity-resolution/entity-resolution.
 
 @Module({
   imports: [
-    EntityResolutionModule,
+    EntityResolutionModule, 
   ],
  controllers: [IngestionController],
   providers: [
@@ -17,7 +17,7 @@ import { EntityResolutionModule } from 'src/entity-resolution/entity-resolution.
     BankTransformer,
     ErpTransformer,
     SatTransformer,
-    ContractTransformer
+    ContractTransformer,
   ],
 })
 export class IngestionModule {}
