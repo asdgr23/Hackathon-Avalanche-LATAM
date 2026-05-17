@@ -1,11 +1,20 @@
-import express from "express";
-
+import express, { Request, Response } from "express";
+import cors from "cors";
 import { analyzeEntity }
 from "./services/analyzeEntity";
 
 const app = express();
 
+app.use(cors());
+
 app.use(express.json());
+
+app.get("/", (_, res) => {
+
+  res.send(
+    "FlowTrace AML Agent Running"
+  );
+});
 
 app.post(
   "/aml/analyze",
@@ -15,6 +24,13 @@ app.post(
     try {
 
       const { entity } = req.body;
+
+      if (!entity) {
+
+        return res.status(400).json({
+          error: "entity required"
+        });
+      }
 
       const result =
         await analyzeEntity(entity);
@@ -32,9 +48,12 @@ app.post(
   }
 );
 
-app.listen(3000, () => {
+const PORT =
+  process.env.PORT || 3000;
+
+app.listen(PORT, () => {
 
   console.log(
-    "AML server running on port 3000"
+    `Server running on port ${PORT}`
   );
 });
