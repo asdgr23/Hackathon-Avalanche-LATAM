@@ -16,14 +16,15 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",
     "@google/generative-ai": "^0.24.1",
-    "cors": "^2.8.6",
     "axios": "^1.16.1",
+    "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "openai": "^6.38.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
     "@types/node": "^25.8.0",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3"

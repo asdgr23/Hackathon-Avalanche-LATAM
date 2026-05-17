@@ -1,11 +1,12 @@
 import dotenv from "dotenv";
 import fs from "fs";
-import express from "express";
+import express, { Request, Response } from "express";
 
 import { normalizeData } from "./normalize";
 import { generateReport } from "./agent";
 import { filterEntityData } from "./filters/filterEntityData";
 import { buildAvalanchePayload } from "./blockchain/buildAvalanchePayload";
+import { ResponseSchema } from "@google/generative-ai";
 
 dotenv.config();
 
@@ -36,7 +37,7 @@ const satRegistry = JSON.parse(
 // API ENDPOINT
 // ───────────────────────────────────
 
-app.post("/analyze", async (req, res) => {
+app.post("/analyze", async (req: Request, res: Response) => {
   try {
     const { entityQuery } = req.body;
 
@@ -91,7 +92,7 @@ app.post("/analyze", async (req, res) => {
 // HEALTH CHECK
 // ───────────────────────────────────
 
-app.get("/", (_, res) => {
+app.get("/", (_req: Request, res: Response) => {
   res.send("FlowTrace AI Agent running 🚀");
 });
 
